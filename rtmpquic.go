@@ -20,7 +20,8 @@ func initLog() {
 	})
 }
 
-func rtmpOverQUIC(network, local, addr, rawurl string,
+func rtmpOverQUIC(idx int,
+	network, local, addr, rawurl string,
 	tlsCfg *tls.Config, cfg *quic.Config,
 	filename string, rtmpType bool) {
 	initLog()

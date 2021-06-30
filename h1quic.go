@@ -12,7 +12,8 @@ import (
 	"github.com/lucas-clemente/quic-go"
 )
 
-func h1OverQUIC(network, local, addr, rawurl string,
+func h1OverQUIC(idx int,
+	network, local, addr, rawurl string,
 	tlsCfg *tls.Config, cfg *quic.Config,
 	buffer []byte, dst io.Writer) {
 	d := time.Now()
@@ -49,7 +50,7 @@ func h1OverQUIC(network, local, addr, rawurl string,
 		return
 	}
 
-	fmt.Println()
+	fmt.Println("client:", idx)
 	fmt.Println(string(data))
 
 	if _, err := stream.Write(data); err != nil {

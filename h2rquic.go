@@ -1,72 +1,75 @@
 package main
 
 import (
-	"crypto/tls"
-	"fmt"
-	"io"
-	"net/http"
-	"net/http/httputil"
-	"time"
+    "crypto/tls"
+    "fmt"
+    "io"
+    "net/http"
+    "net/http/httputil"
+    "time"
 
-	quic "github.com/lucas-clemente/quic-go"
-	"github.com/lucas-clemente/quic-go/h2quic"
+    quic "github.com/lucas-clemente/quic-go"
+    "github.com/lucas-clemente/quic-go/h2quic"
 )
 
-func h2OverQUIC(network, local, addr, rawurl string,
-	tlsCfg *tls.Config, cfg *quic.Config,
-	buffer []byte, dst io.Writer) {
-	roundTripper := &h2quic.RoundTripper{
-		TLSClientConfig: tlsCfg,
-		QuicConfig:      cfg,
-		Dial:            dialFunc(local),
-	}
+func h2OverQUIC(idx int,
+    network, local, addr, rawurl string,
+    tlsCfg *tls.Config, cfg *quic.Config,
+    buffer []byte, dst io.Writer) {
 
-	defer roundTripper.Close()
+    fmt.Printf("%+v -> %+v\n", local, addr)
+    roundTripper := &h2quic.RoundTripper{
+        TLSClientConfig: tlsCfg,
+        QuicConfig:      cfg,
+        Dial:            dialFunc(local, addr),
+    }
 
-	client := &http.Client{
-		Transport: roundTripper,
-	}
+    defer roundTripper.Close()
 
-	dial := time.Now()
-	req, err := http.NewRequest("GET", rawurl, nil)
-	if err != nil {
-		fmt.Println(err)
+    client := &http.Client{
+        Transport: roundTripper,
+    }
 
-		return
-	}
+    dial := time.Now()
+    req, err := http.NewRequest("GET", rawurl, nil)
+    if err != nil {
+        fmt.Println(err)
 
-	data, err := httputil.DumpRequestOut(req, true)
-	if err != nil {
-		fmt.Println(err)
+        return
+    }
 
-		return
-	}
+    data, err := httputil.DumpRequestOut(req, true)
+    if err != nil {
+        fmt.Println(err)
 
-	fmt.Println()
-	fmt.Println(string(data))
+        return
+    }
 
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err)
+    fmt.Println("client:", idx)
+    fmt.Println(string(data))
 
-		return
-	}
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println(err)
 
-	readresp := time.Now()
-	fmt.Println("recvresp:", readresp.Sub(dial).String())
-	fmt.Println()
+        return
+    }
 
-	rp, err := DumpResponse(resp)
-	fmt.Println(string(rp))
-	if err != nil {
-		fmt.Println(err)
-	}
+    readresp := time.Now()
+    fmt.Println("recvresp:", readresp.Sub(dial).String())
+    fmt.Println()
 
-	if _, err := io.CopyBuffer(dst, resp.Body, buffer); err != nil {
-		fmt.Println(err)
-	}
+    rp, err := DumpResponse(resp)
+    fmt.Println(string(rp))
+    if err != nil {
+        fmt.Println(err)
+    }
 
-	if resp != nil && resp.Body != nil {
-		resp.Body.Close()
-	}
+    if _, err := io.CopyBuffer(dst, resp.Body, buffer); err != nil {
+        fmt.Println(err)
+    }
+
+    if resp != nil && resp.Body != nil {
+        resp.Body.Close()
+    }
 }

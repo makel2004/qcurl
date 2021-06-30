@@ -15,40 +15,23 @@ func main() {
 		sni         = flag.String("sni", "", "domain,empty is skip")
 		quicVersion = flag.String("quic-version", "43", "support 39,43,44")
 		local       = flag.String("bind", "", "bind local ip")
-		name        = flag.String("file", "d.flv", "specify i/o flv file")
+		name        = flag.String("file", "test.flv", "specify i/o flv file")
 		buffer      = flag.Int("buffer", 102400, "buffer size in byte")
 		rtmpType    = flag.Bool("type", true, "whether to pull or publish,true is pull")
 		skip        = flag.Bool("skip", true, "whether a client verifies the server's certificate chain and host name")
+		client      = flag.Int("client", 1, "paral client number")
 	)
 
 	flag.Parse()
 
 	rawurl := os.Args[len(os.Args)-1]
 
-	filename := time.Now().Format("2006-01-02-15-04-05-999-") + *name
-	file, err := os.OpenFile(filename,
-		os.O_WRONLY|os.O_TRUNC|os.O_CREATE,
-		0666)
-	if err != nil {
-		fmt.Println(err)
-
-		return
-	}
-
-	defer func() {
-		file.Sync()
-
-		stat, _ := file.Stat()
-		if stat.Size() == 0 {
-			os.Remove(file.Name())
-		}
-
-		file.Close()
-	}()
+	//filename := time.Now().Format("2006-01-02-15-04-05-999-") + *name
+	filename := time.Now().Format("2006-01-02-15-04-") + *name
 
 	u, err := url.Parse(rawurl)
 	if err != nil {
-		fmt.Println(rawurl, err)
+		fmt.Println("url parsed error:", rawurl, err)
 		return
 	}
 
@@ -58,21 +41,30 @@ func main() {
 
 	tlsCfg, cfg := parseCfg(*quicVersion, *sni, *skip)
 
-	appBuffer := make([]byte, *buffer)
+	buffer_size := *buffer
 
-	quit := make(chan os.Signal, 1)
-	go run(*network,
-		*local,
-		*addr,
-		rawurl,
-		filename,
-		tlsCfg,
-		cfg,
-		appBuffer,
-		file,
-		u,
-		*rtmpType,
-		quit)
+	quit := make(chan int, *client)
 
-	<-quit
+	idx := 0
+	for idx < *client {
+		go run(idx,
+			*network,
+			*local,
+			*addr,
+			rawurl,
+			filename,
+			tlsCfg,
+			cfg,
+			buffer_size,
+			u,
+			*rtmpType,
+			quit)
+		idx += 1
+	}
+
+	idx = 0
+	for idx < *client {
+		<-quit
+		idx += 1
+	}
 }
