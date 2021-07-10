@@ -20,6 +20,7 @@ func main() {
 		rtmpType    = flag.Bool("type", true, "whether to pull or publish,true is pull")
 		skip        = flag.Bool("skip", true, "whether a client verifies the server's certificate chain and host name")
 		client      = flag.Int("client", 1, "paral client number")
+		reqcount    = flag.Int("reqcount", 0, "total request count")
 	)
 
 	flag.Parse()
@@ -27,7 +28,10 @@ func main() {
 	rawurl := os.Args[len(os.Args)-1]
 
 	//filename := time.Now().Format("2006-01-02-15-04-05-999-") + *name
-	filename := time.Now().Format("2006-01-02-15-04-") + *name
+	filename := ""
+	if *client == 1 {
+		filename = time.Now().Format("2006-01-02-15-04-") + *name
+	}
 
 	u, err := url.Parse(rawurl)
 	if err != nil {
@@ -60,11 +64,27 @@ func main() {
 			*rtmpType,
 			quit)
 		idx += 1
+		time.Sleep(time.Duration(1) * time.Second)
 	}
 
+	max := *client + *reqcount
 	idx = 0
-	for idx < *client {
+	for idx < max {
 		<-quit
 		idx += 1
+		if *reqcount > 0 {
+			go run(idx+*client,
+				*network,
+				*local,
+				*addr,
+				rawurl,
+				filename,
+				tlsCfg,
+				cfg,
+				buffer_size,
+				u,
+				*rtmpType,
+				quit)
+		}
 	}
 }

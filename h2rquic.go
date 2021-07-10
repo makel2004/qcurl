@@ -17,7 +17,7 @@ func h2OverQUIC(idx int,
     tlsCfg *tls.Config, cfg *quic.Config,
     buffer []byte, dst io.Writer) {
 
-    fmt.Printf("%+v -> %+v\n", local, addr)
+    //fmt.Printf("%+v -> %+v\n", local, addr)
     roundTripper := &h2quic.RoundTripper{
         TLSClientConfig: tlsCfg,
         QuicConfig:      cfg,
@@ -45,8 +45,7 @@ func h2OverQUIC(idx int,
         return
     }
 
-    fmt.Println("client:", idx)
-    fmt.Println(string(data))
+    fmt.Printf("client:%v %v\n", idx, string(data))
 
     resp, err := client.Do(req)
     if err != nil {
@@ -56,8 +55,7 @@ func h2OverQUIC(idx int,
     }
 
     readresp := time.Now()
-    fmt.Println("recvresp:", readresp.Sub(dial).String())
-    fmt.Println()
+    fmt.Printf("client:%v recv resp after %+v\n", idx, readresp.Sub(dial).String())
 
     rp, err := DumpResponse(resp)
     fmt.Println(string(rp))
@@ -65,8 +63,16 @@ func h2OverQUIC(idx int,
         fmt.Println(err)
     }
 
-    if _, err := io.CopyBuffer(dst, resp.Body, buffer); err != nil {
-        fmt.Println(err)
+    for {
+        if _, err := io.CopyN(dst, resp.Body, 4096); err != nil {
+            fmt.Println("80:", err)
+            break
+        }
+        cn := time.Now().Sub(readresp).Seconds()
+        if cn > 10 {
+            fmt.Printf("client:%v close after %v seconds\n", idx, cn)
+            break
+        }
     }
 
     if resp != nil && resp.Body != nil {
