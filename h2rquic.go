@@ -69,7 +69,7 @@ func h2OverQUIC(idx int,
             break
         }
         cn := time.Now().Sub(readresp).Seconds()
-        if cn > 10 {
+        if int(cn) > DurationSec {
             fmt.Printf("client:%v close after %v seconds\n", idx, cn)
             break
         }

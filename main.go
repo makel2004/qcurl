@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+var DurationSec int
+
 func main() {
 	var (
 		network     = flag.String("network", "udp4", "network")
@@ -21,9 +23,12 @@ func main() {
 		skip        = flag.Bool("skip", true, "whether a client verifies the server's certificate chain and host name")
 		client      = flag.Int("client", 1, "paral client number")
 		reqcount    = flag.Int("reqcount", 0, "total request count")
+		interval    = flag.Int("interval", 50, "interval duration(micro-second) between 2 requests")
+		duration    = flag.Int("duration", 86400, "duration time(second) for each-requests")
 	)
 
 	flag.Parse()
+	DurationSec = *duration
 
 	rawurl := os.Args[len(os.Args)-1]
 
@@ -64,7 +69,7 @@ func main() {
 			*rtmpType,
 			quit)
 		idx += 1
-		time.Sleep(time.Duration(1) * time.Second)
+		time.Sleep(time.Duration(*interval) * time.Millisecond)
 	}
 
 	max := *client + *reqcount
